@@ -1,6 +1,6 @@
 import { Grid } from "@chakra-ui/react";
 
-export function TabelasAntigas() {
+export default function TabelasAntigas() {
     return(
         <Grid>TabelasAntigas</Grid>
     )
