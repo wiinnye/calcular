@@ -13,15 +13,18 @@ import {
 import { useState } from "react";
 import pagamentos from "../../services/pagamentos";
 import { FaTrash } from "react-icons/fa";
+import Notificacao from "../Notificacao/Notificacao";
 
 export default function ListaTabelaNova({
   items,
   valorTotal,
   onUpdateQuantity,
   salvarLista,
-  deletarItems,
+  deletarItems
 }) {
   const [formaPagamento, setFormaPagamento] = useState(null);
+  const [notificacao, setNotificacao] = useState("");
+  const [erroPagamento, setErroPagamento] = useState(false);
   const { contains } = useFilter({ sensitivity: "base" });
 
   const { collection, filter } = useListCollection({
@@ -46,10 +49,14 @@ export default function ListaTabelaNova({
 
   const salvarListaFinal = () => {
     if (!formaPagamento) {
-      console.log("Selecione uma Forma de Pagamento!");
+      setNotificacao({
+        msg: "Selecione uma forma de pagamento!",
+        tipo: "erro",
+      });
+      setErroPagamento(true);
       return;
     }
-
+    setErroPagamento(false);
     salvarLista(formaPagamento);
   };
 
@@ -147,11 +154,23 @@ export default function ListaTabelaNova({
               <Select.HiddenSelect />
               <Select.Label> Forma de Pagamento</Select.Label>
               <Select.Control>
-                <Select.Trigger>
-                  <Select.ValueText placeholder="Selecione" />
+                <Select.Trigger
+                    borderColor={!erroPagamento ? "#000" : "red.500"}
+                    borderWidth={!erroPagamento ? "1px" : "2px"}
+                    _hover={{
+                      borderColor: !erroPagamento ? "#000" : "red.600",
+                    }}
+                    _focus={{
+                      borderColor: !erroPagamento ? "gray.300" : "red.500",
+                      boxShadow: !erroPagamento
+                        ? "outline"
+                        : "0 0 0 1px #E53E3E", 
+                    }}
+                >
+                  <Select.ValueText  color={!erroPagamento ? "#000" : "red.500"} placeholder="Selecione" />
                 </Select.Trigger>
                 <Select.IndicatorGroup>
-                  <Select.Indicator />
+                  <Select.Indicator color={!erroPagamento ? "#000" : "red.500"} />
                 </Select.IndicatorGroup>
               </Select.Control>
               <Portal>
@@ -192,6 +211,14 @@ export default function ListaTabelaNova({
           </Text>
         </Flex>
       </Flex>
+
+    {notificacao &&
+      <Notificacao
+        msg={notificacao?.msg}
+        tipo={notificacao?.tipo}
+        descricao={notificacao?.descricao}
+        onClose={() => setNotificacao(null)}
+      />}
     </Flex>
   );
 }

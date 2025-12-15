@@ -1,8 +1,10 @@
-import { Flex, Text } from "@chakra-ui/react";
+import { Button, Flex, Icon, Text } from "@chakra-ui/react";
+import { FaTrash } from "react-icons/fa";
 
 export default function HistoricoVendas({
   historicoDeVendas,
   faturamentoTotal,
+  deletarVenda,
 }) {
   const totalFormatado = faturamentoTotal?.toFixed(2).replace(".", ",");
 
@@ -12,15 +14,11 @@ export default function HistoricoVendas({
         Vendas do Dia
       </Text>
 
-      <Flex
-        flexDirection="column"
-        maxH="400px"
-        overflowY="auto"
-        p="1" 
-      >
+      <Flex flexDirection="column" maxH="400px" overflowY="auto" p="1">
         {historicoDeVendas.map((venda) => (
           <Flex
             key={venda.id}
+            // flexDirection="column"
             p="4"
             borderWidth="1px"
             borderRadius="md"
@@ -44,9 +42,26 @@ export default function HistoricoVendas({
               ))}
               <Text fontSize="sm">Total de Itens: {venda.itens.length}</Text>
             </Flex>
-            <Text fontSize="xl" fontWeight="extrabold" color="green.500">
-              R$ {venda.total.toFixed(2).replace(",", ".")}
-            </Text>
+             <Flex  justifyContent="space-between" direction='column'>
+              <Flex>
+                <Text fontSize="xl" fontWeight="extrabold" color="green.500">
+                  R$ {venda.total.toFixed(2).replace(",", ".")}
+                </Text>
+              </Flex>
+
+              <Button
+                size="sm"
+                color="red"
+                align='end'
+                variant="ghost"
+                onClick={() => deletarVenda(venda.firebaseId)}
+                isDisabled={!venda.firebaseId}
+                title="Deletar Venda do Histórico"
+              >
+                <Icon as={FaTrash} w={4} h={4} />
+              </Button>
+            </Flex>
+
           </Flex>
         ))}
       </Flex>

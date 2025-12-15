@@ -1,20 +1,20 @@
-import {
-  Button,
-  Combobox,
-  Flex,
-  Input,
-  Portal,
-  Text,
-  useFilter,
-  useListCollection,
-} from "@chakra-ui/react";
+import { Button, Combobox, Flex, Input, Portal, Text } from "@chakra-ui/react";
 import ListaTabelaNova from "../../components/ListaTabelaNova/ListaTabelaNova";
 import Notificacao from "../../components/Notificacao/Notificacao";
 import tabelaDePreco from "../../services/mockTabeladePreco";
 import HistoricoVendas from "../../components/HistoricoVendas/HistoricoVendas";
 import ExcelDownload from "../../components/ExcelDownload/ExcelDownload";
-import { db } from "../../services/firebase"; 
-import { collection, addDoc, getDocs, query, orderBy } from "firebase/firestore";
+import { db } from "../../services/firebase";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  where,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx/xlsx.mjs";
 import { saveAs } from "file-saver";
@@ -30,7 +30,22 @@ export default function Tabela() {
   const [totalGeral, setTotalGeral] = useState(0);
   const [historicoDeVendas, setHistoricoDeVendas] = useState([]);
 
-  
+  const getInicioDoDia = () => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0); // 00:00:00.000
+    return hoje.toISOString(); // Retorna no formato de string ISO
+  };
+
+  const getFimDoDia = () => {
+    const amanha = new Date();
+    amanha.setDate(amanha.getDate() + 1);
+    amanha.setHours(0, 0, 0, 0); // 00:00:00.000 do próximo dia
+    return amanha.toISOString(); // Retorna no formato de string ISO
+  };
+
+  const inicioDoDia = getInicioDoDia();
+  const fimDoDia = getFimDoDia();
+
   const dataDeHoje = new Date();
 
   useEffect(() => {
@@ -42,8 +57,9 @@ export default function Tabela() {
   }, [adicionarLista]);
 
   useEffect(() => {
-    buscarHistoricoVendas(); 
-}, []);
+    buscarHistoricoVendas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const dataFormatada = dataDeHoje.toLocaleDateString("pt-BR", {
     day: "2-digit",
@@ -57,32 +73,24 @@ export default function Tabela() {
     second: "2-digit",
   });
 
-  const { contains } = useFilter({ sensitivity: "base" });
-
-  const { collection, filter } = useListCollection({
-    initialItems: tabelaDePreco,
-    filter: contains,
-  });
-
   const selecionarServicoValue = (selection) => {
-  const selectedValue = selection.itemValue;
-  const itemCompleto = tabelaDePreco.find(
-    (item) => item.value === selectedValue
-  );
+    const selectedValue = selection.itemValue;
+    const itemCompleto = tabelaDePreco.find(
+      (item) => item.value === selectedValue
+    );
 
-  if (itemCompleto) {
-    setItemSelecionado(itemCompleto);
-    setServicoSelecionado(itemCompleto.servico);
-    
+    if (itemCompleto) {
+      setItemSelecionado(itemCompleto);
+      setServicoSelecionado(itemCompleto.servico);
 
-    if (itemCompleto.quantidade_fixa) {
-      setQuantidade(String(itemCompleto.quantidade_fixa)); 
-    } else {
-      setQuantidade(""); 
-      setServicoSelecionado("");
+      if (itemCompleto.quantidade_fixa) {
+        setQuantidade(String(itemCompleto.quantidade_fixa));
+      } else {
+        setQuantidade("");
+        setServicoSelecionado("");
+      }
     }
-  }
-};
+  };
 
   const atualizarQuantidade = (itemId, novaQuantidade) => {
     const quantidadeNumerica = parseFloat(novaQuantidade);
@@ -106,7 +114,7 @@ export default function Tabela() {
     });
     setAdicionarLista(listaAtualizada);
   };
-  
+
   const faturamentoTotal = useMemo(() => {
     return historicoDeVendas.reduce((acumulador, vendaAtual) => {
       return acumulador + (vendaAtual.total || 0);
@@ -144,10 +152,8 @@ export default function Tabela() {
   };
 
   const deletarItems = (itemId) => {
-    // Cria uma nova lista, excluindo o item com o ID fornecido
     const listaAtualizada = adicionarLista.filter((item) => item.id !== itemId);
     setAdicionarLista(listaAtualizada);
-    // Nota: O useEffect para totalGeral atualizará automaticamente.
   };
 
   const salvarLista = async (formaPagamentoSelecionada) => {
@@ -163,52 +169,80 @@ export default function Tabela() {
     };
 
     try {
-        const vendasCollectionRef = collection(db, "vendas");
-        
-        const docRef = await addDoc(vendasCollectionRef, vendaFinal);
+      const vendasCollectionRef = collection(db, "vendas");
 
-const vendaSalva = { ...vendaFinal, firebaseId: docRef.id };
+      const docRef = await addDoc(vendasCollectionRef, vendaFinal);
 
-setHistoricoDeVendas((prevHistorico) => [...prevHistorico, vendaSalva]);
+      const vendaSalva = { ...vendaFinal, firebaseId: docRef.id };
 
-    
-        setAdicionarLista([]);
-        
-        setNotificacao({
-            msg: "Venda salva com sucesso no banco de dados!",
-            tipo: "sucesso",
-        });
+      setHistoricoDeVendas((prevHistorico) => [vendaSalva, ...prevHistorico]);
+      setAdicionarLista([]);
 
+      setNotificacao({
+        msg: "Venda salva!",
+        tipo: "sucesso",
+      });
     } catch (e) {
-        console.error("Erro ao adicionar documento: ", e);
-        setNotificacao({
-            msg: "Erro ao salvar venda. Verifique sua conexão.",
-            tipo: "erro",
-        });
+      console.error("Erro ao adicionar documento: ", e);
+      setNotificacao({
+        msg: "Erro ao salvar venda.",
+        tipo: "erro",
+      });
     }
   };
 
   const buscarHistoricoVendas = async () => {
     try {
-        const vendasCollectionRef = collection(db, "vendas");
-        
-        const q = query(vendasCollectionRef, orderBy("data", "desc"));
-        
-        const data = await getDocs(q);
-        
-        const historicoMapeado = data.docs.map((doc) => ({
-            ...doc.data(),
-            firebaseId: doc.id, 
-            total: parseFloat(doc.data().total)
-        }));
+      const vendasCollectionRef = collection(db, "vendas");
 
-        setHistoricoDeVendas(historicoMapeado);
-        console.log("Histórico de vendas carregado do Firebase.");
+      const q = query(
+        vendasCollectionRef,
+        where("data", ">=", inicioDoDia),
+        where("data", "<", fimDoDia),
+        orderBy("data", "desc")
+      );
 
+      const data = await getDocs(q);
+
+      const historicoMapeado = data.docs.map((doc) => ({
+        ...doc.data(),
+        firebaseId: doc.id,
+        total: parseFloat(doc.data().total),
+      }));
+
+      setHistoricoDeVendas(historicoMapeado);
     } catch (error) {
-        console.error("Erro ao buscar histórico de vendas:", error);
+      console.error("Erro ao buscar histórico de vendas:", error);
+      setNotificacao({
+        msg: "Erro ao carregar dados do Firebase.",
+        tipo: "erro",
+      });
+    }
+  };
+
+  const deletarVenda = async (firebaseId) => {
+    // if (!window.confirm("Tem certeza que deseja deletar esta venda do histórico?")) {
+    //     return;
+    // }
+
+    try {
+        const documentoRef = doc(db, "vendas", firebaseId); 
+
+        await deleteDoc(documentoRef);
+
+        setHistoricoDeVendas((prevHistorico) => 
+            prevHistorico.filter(venda => venda.firebaseId !== firebaseId)
+        );
+
         setNotificacao({
-            msg: "Erro ao carregar dados do Firebase.",
+            msg: "Venda deletada com sucesso!",
+            tipo: "sucesso",
+        });
+
+    } catch (e) {
+        console.error("Erro ao deletar documento: ", e);
+        setNotificacao({
+            msg: "Erro ao deletar venda. Tente novamente.",
             tipo: "erro",
         });
     }
@@ -315,8 +349,6 @@ setHistoricoDeVendas((prevHistorico) => [...prevHistorico, vendaSalva]);
           p="1rem"
         >
           <Combobox.Root
-            collection={collection}
-            onInputValueChange={(e) => filter(e.inputValue)}
             onSelect={selecionarServicoValue}
             inputValue={servicoSelecionado}
             onInputChange={(e) => setServicoSelecionado(e.target.value)}
@@ -334,9 +366,9 @@ setHistoricoDeVendas((prevHistorico) => [...prevHistorico, vendaSalva]);
               <Combobox.Positioner>
                 <Combobox.Content>
                   <Combobox.Empty>item não encontrado</Combobox.Empty>
-                  {collection.items.map((item) => (
-                    <Combobox.Item item={item} key={item.value}>
-                      {item.servico}
+                  {tabelaDePreco.map((tabela) => (
+                    <Combobox.Item item={tabela} key={tabela.value}>
+                      {tabela.servico}
                       <Combobox.ItemIndicator />
                     </Combobox.Item>
                   ))}
@@ -406,7 +438,6 @@ setHistoricoDeVendas((prevHistorico) => [...prevHistorico, vendaSalva]);
         </Flex>
       </Flex>
 
-      {/* ARRUMAR AQUI  */}
       {adicionarLista.length > 0 && (
         <ListaTabelaNova
           items={adicionarLista}
@@ -422,6 +453,7 @@ setHistoricoDeVendas((prevHistorico) => [...prevHistorico, vendaSalva]);
         <HistoricoVendas
           historicoDeVendas={historicoDeVendas}
           faturamentoTotal={faturamentoTotal}
+          deletarVenda={deletarVenda}
         />
       )}
       {notificacao && (
@@ -429,7 +461,7 @@ setHistoricoDeVendas((prevHistorico) => [...prevHistorico, vendaSalva]);
           msg={notificacao?.msg}
           tipo={notificacao?.tipo}
           descricao={notificacao?.descricao}
-          onClose={notificacao?.onClose}
+          onClose={() => setNotificacao(null)}
         />
       )}
     </Flex>
