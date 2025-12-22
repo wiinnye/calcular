@@ -244,6 +244,12 @@ const tabelaDePreco = [
     "preco_reais": 5.00,
     "value": "Cópia de Pen-Drive (a cada 100 Mega)",
     "quantidade_fixa": null 
+  },
+  {
+    "servico": "Serviço externo",
+    "preco_reais": 0.00,
+    "value": "Serviço externo",
+    "quantidade_fixa": 1 
   }
 ]
 

@@ -55,7 +55,7 @@ export default function HistoricoVendas({
                 align='end'
                 variant="ghost"
                 onClick={() => deletarVenda(venda.firebaseId)}
-                isDisabled={!venda.firebaseId}
+                disabled={!venda.firebaseId}
                 title="Deletar Venda do Histórico"
               >
                 <Icon as={FaTrash} w={4} h={4} />

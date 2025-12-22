@@ -3,17 +3,16 @@ import {
   Flex,
   Input,
   Text,
-//   useBreakpointValue,
   Box,
   Group,
 } from "@chakra-ui/react";
 
 import { useState } from "react";
-// import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { IoEyeOff, IoEyeSharp } from "react-icons/io5";
-// import {  getDoc, doc} from "firebase/firestore";
-// import {  auth, db } from "../../services/firebase";
-// import { signInWithEmailAndPassword } from "firebase/auth";
+import {  getDoc, doc} from "firebase/firestore";
+import {  auth, db } from "../../services/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import  SpinnerPage  from "../../components/SpinnerPage/SpinnerPage";
 
 export default function Login() {
@@ -25,66 +24,73 @@ export default function Login() {
   const [mensagem, setMensagem] = useState("");
   const [showSenha, setShowSenha] = useState(false);
   const [carregando, setCarregando] = useState(false)
-//   const navigate = useNavigate();
-//   const isMobile = useBreakpointValue({ base: true, md: false });
+  const navigate = useNavigate();
 
   const validarEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const entrarConta = async () => {
+const entrarConta = async () => {
   setErroEmail("");
   setErroSenha("");
   setMensagem("");
 
-  if (!emailValue) setErroEmail("Preencha o campo de email");
-  if (!senhaValue) setErroSenha("Preencha o campo de senha");
-  if (!emailValue || !senhaValue) return;
+  const emailLimpo = emailValue.trim();
+  const senhaLimpa = senhaValue; 
 
-  if (!validarEmail(emailValue)) {
+  if (!emailLimpo) {
+    setErroEmail("Preencha o campo de email");
+    return;
+  }
+  if (!senhaLimpa) {
+    setErroSenha("Preencha o campo de senha");
+    return;
+  }
+
+  if (!validarEmail(emailLimpo)) {
     setErroEmail("Digite um e-mail válido");
     return;
   }
 
-  setCarregando(true)
+  setCarregando(true);
 
-//   try {
-//     const userCredential = await signInWithEmailAndPassword(auth, emailValue, senhaValue);
-//     const user = userCredential.user;
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, emailLimpo, senhaLimpa);
+    const user = userCredential.user;
 
-//     // Busca dados complementares no Firestore
-//     const docRef = doc(db, "usuarios", user.uid);
-//     const docSnap = await getDoc(docRef);
+    const docRef = doc(db, "usuarios", user.uid);
+    const docSnap = await getDoc(docRef);
 
-//     if (!docSnap.exists()) {
-//       setCarregando(false)
-//       setErroEmail("Usuário não encontrado no banco de dados.");
-//       return;
-//     }
+    if (!docSnap.exists()) {
+      setCarregando(false);
+      setErroEmail("Conta autenticada, mas perfil não encontrado no banco.");
+      return;
+    }
 
-//     // const userData = docSnap.data();
-//     // console.log("Usuário logado:", userData);
+    const userData = docSnap.data();
+    console.log("Usuário logado:", userData);
 
-//     setMensagem("Login bem-sucedido!");
-//     navigate("/traducao");
-//   } catch (error) {
-//     setCarregando(false)
-//     if (error.code === "auth/invalid-email") {
-//       setErroEmail("Email inválido");
-//     } else if (error.code === "auth/invalid-credential") {
-//       setError("Senha ou Email incorreto");
-//     } else if (error.code === "auth/user-not-found") {
-//       setErroEmail("Usuário não encontrado");
-//     } else if (error.code === "auth/wrong-password") {
-//       setErroSenha("Senha incorreta");
-//     } else {
-//       setErroSenha("Erro ao fazer login, tente novamente");
-//     }
-//   }
+    setMensagem("Login bem-sucedido!");
+    setCarregando(false);
+    navigate("/home");
+
+  } catch (error) {
+    setCarregando(false);
+    if (
+      error.code === "auth/invalid-credential" || 
+      error.code === "auth/user-not-found" || 
+      error.code === "auth/wrong-password"
+    ) {
+      setErroEmail("E-mail ou senha incorretos.");
+      setError("E-mail ou senha incorretos.");
+    } else if (error.code === "auth/invalid-email") {
+      setErroEmail("Formato de e-mail inválido.");
+    } else if (error.code === "auth/too-many-requests") {
+      setErroEmail("Muitas tentativas. Tente novamente mais tarde.");
+    } else {
+      setErroSenha("Erro ao fazer login. Verifique sua conexão.");
+    }
+  }
 };
 
-
-//   const esqueceuSenha = () => {
-//     navigate("/recuperarSenha");
-//   };
 
   return (
     <>
