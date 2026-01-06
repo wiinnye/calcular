@@ -1,6 +1,7 @@
 const pagamentos = [
-{   "label": "Pix",
-    "value": "pix" 
+{   
+    "label": "Dinheiro",
+    "value": "dinheiro" 
 },
 { 
     "label": "Débito",
@@ -10,9 +11,8 @@ const pagamentos = [
     "label": "Credito",
     "value": "credito"
 },
-{   
-    "label": "Dinheiro",
-    "value": "dinheiro" 
+{   "label": "Pix",
+    "value": "pix" 
 },
 ];
 

@@ -70,6 +70,7 @@ export default function ListaTabelaNova({
       flexDirection="column"
       mt="2rem"
       p='.5rem'
+      cursor="default"
     >
       <Flex
         w={{base:"100%", lg:"80%"}}
@@ -79,6 +80,8 @@ export default function ListaTabelaNova({
         bg="#FFFCDD"
         mt={{ base: "1rem", lg: "0" }}
         p='.3rem'
+        cursor="default" 
+        userSelect="none" 
       >
         {/* <Flex
           w={{ base: "100%", lg: "60%" }}

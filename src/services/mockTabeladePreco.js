@@ -246,10 +246,64 @@ const tabelaDePreco = [
     "quantidade_fixa": null 
   },
   {
-    "servico": "Serviço externo",
+    "servico": "Serviço externo - Informatica",
     "preco_reais": 0.00,
-    "value": "Serviço externo",
+    "value": "Serviço externo - Informatica",
     "quantidade_fixa": 1 
+  },
+  {
+    "servico": "Acessorios externo",
+    "preco_reais": 0.00,
+    "value": "Acessorios externo",
+    "quantidade_fixa": 1 
+  },
+  {
+    "servico": "Envelope Grande A4",
+    "preco_reais": 2.00,
+    "value": "Envelope Grande A4",
+    "quantidade_fixa": null 
+  },
+  {
+    "servico": "Envelope Pequeno",
+    "preco_reais": 1.00,
+    "value": "Envelope Pequeno",
+    "quantidade_fixa": null 
+  },
+  {
+    "servico": "Lapis",
+    "preco_reais": 1.50,
+    "value": "Lapis",
+    "quantidade_fixa": null 
+  },
+  {
+    "servico": "Caneta",
+    "preco_reais": 1.90,
+    "value": "Caneta",
+    "quantidade_fixa": null 
+  },
+  {
+    "servico": "Capinha RG/CNH",
+    "preco_reais": 2.50,
+    "value": "Capinha RG/CNH",
+    "quantidade_fixa": null 
+  },
+  {
+    "servico": "Capinha CPF",
+    "preco_reais": 2.00,
+    "value": "Capinha CPF",
+    "quantidade_fixa": null 
+  },
+  {
+    "servico": "Pasta A4 ",
+    "preco_reais": 6.00,
+    "value": "Pasta A4 ",
+    "quantidade_fixa": null 
+  },
+  {
+    "servico": "Pasta Pequena ",
+    "preco_reais": 4.00,
+    "value": "Pasta Pequena ",
+    "quantidade_fixa": null 
   }
 ]
 

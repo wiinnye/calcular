@@ -8,6 +8,12 @@ export default function HistoricoVendas({
 }) {
   const totalFormatado = faturamentoTotal?.toFixed(2).replace(".", ",");
 
+  const formatarHora = (dataISO) => {
+    return new Date(dataISO).toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
   return (
     <Flex flexDirection="column" mt="3rem" p="1rem">
       <Text fontSize="2xl" fontWeight="bold" mb="1rem">
@@ -27,11 +33,10 @@ export default function HistoricoVendas({
           >
             <Flex flexDirection="column">
               <Text fontWeight="semibold">
-                {venda.itens.map((item, itemIndex) => (
-                  <Text key={item.id || itemIndex} fontSize="sm">
-                    {item.horario}
+                  <Text fontSize="sm" color="blue.600" fontWeight="bold" mb="1">
+                    Venda às {formatarHora(venda.data)}
                   </Text>
-                ))}
+              
               </Text>
               <Text fontSize="sm">Pagamento: {venda.formaPagamento}</Text>
               {venda.itens.map((item, itemIndex) => (

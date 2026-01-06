@@ -38,19 +38,24 @@ export default function Tabela() {
   const [erroQuantidade, setErroQuantidade] = useState(false);
   const [adicionarLista, setAdicionarLista] = useState([]);
   const [totalGeral, setTotalGeral] = useState(0);
+  const [valorSelecionado, setValorSelecionado] = useState([]);
   const [historicoDeVendas, setHistoricoDeVendas] = useState([]);
   const [valorManual, setValorManual] = useState("0.00");
 
   // --- CONFIGURAÇÃO DO COMBOBOX (Chakra v3) ---
-  const listaCollection = useMemo(
-    () =>
-      createListCollection({
-        items: tabelaDePreco,
-        itemToString: (item) => item.servico,
-        itemToValue: (item) => item.value,
-      }),
-    []
-  );
+  const listafiltro = useMemo(() => {
+  const itensFiltrados = !servicoSelecionado 
+    ? tabelaDePreco 
+    : tabelaDePreco.filter((item) =>
+        item.servico.toLowerCase().includes(servicoSelecionado.toLowerCase())
+      );
+
+  return createListCollection({
+    items: itensFiltrados,
+    itemToString: (item) => item.servico,
+    itemToValue: (item) => item.value,
+  });
+}, [servicoSelecionado]);
 
   // --- DATAS PARA FILTRO FIREBASE ---
   const getInicioDoDia = () => {
@@ -105,6 +110,8 @@ export default function Tabela() {
 
   const selecionarServicoValue = (details) => {
     const selectedValue = details.value[0];
+    setValorSelecionado(details.value);
+
     if (!selectedValue) return;
 
     const itemCompleto = tabelaDePreco.find(
@@ -151,6 +158,7 @@ export default function Tabela() {
     // Limpar campos
     setItemSelecionado(null);
     setServicoSelecionado("");
+    setValorSelecionado([]);
     setQuantidade("");
     setValorManual("0.00");
     setErroQuantidade(false);
@@ -218,74 +226,78 @@ export default function Tabela() {
     if (historicoDeVendas.length === 0) {
       setNotificacao({
         msg: "Não há vendas no histórico para exportar.",
-
         tipo: "erro",
       });
-
       setTimeout(() => setNotificacao(null), 5000);
-
       return;
     }
 
     const dadosPlano = historicoDeVendas.map((venda) => {
-      const dataFormatada = new Date(venda.data).toLocaleDateString("pt-BR", {
+      const dataVenda = new Date(venda.data).toLocaleDateString("pt-BR", {
         day: "2-digit",
-
         month: "2-digit",
-
         year: "numeric",
-
         hour: "2-digit",
-
         minute: "2-digit",
       });
 
-      const listaServicos = venda.itens
-
-        .map((item) => {
-          return `${item.servico}`;
-        })
-
-        .join(" | ");
+      const listaServicos = venda.itens.map((item) => item.servico).join(" | ");
 
       return {
-        "Data e Hora": dataFormatada,
-
+        "Data e Hora": dataVenda,
         "Forma de Pagamento": venda.formaPagamento,
-
         "Serviços Detalhados": listaServicos,
-
-        "Total da Venda (R$)": venda.total.toFixed(2).replace(".", ","),
+        "Total da Venda (R$)": venda.total,
       };
+    });
+
+    // Adiciona uma linha vazia de separação 
+    dadosPlano.push({
+      "Data e Hora": "",
+      "Forma de Pagamento": "",
+      "Serviços Detalhados": "",
+      "Total da Venda (R$)": "",
+    });
+
+    // Adiciona a linha de Faturamento Total
+    dadosPlano.push({
+      "Data e Hora": "",
+      "Forma de Pagamento": "",
+      "Serviços Detalhados": "TOTAL FATURADO NO DIA:",
+      "Total da Venda (R$)": faturamentoTotal, 
     });
 
     const worksheet = XLSX.utils.json_to_sheet(dadosPlano);
 
+    // Ajuste das colunas
     worksheet["!cols"] = [
-      { wch: 20 }, // Coluna B: Data e Hora
-
-      { wch: 20 }, // Coluna C: Forma de Pagamento
-
-      { wch: 80 }, // Coluna D: Serviços Detalhados (Aumente a largura)
-
-      { wch: 20 }, // Coluna E: Total da Venda
+      { wch: 20 }, // Data e Hora
+      { wch: 20 }, // Forma de Pagamento
+      { wch: 80 }, // Serviços Detalhados
+      { wch: 20 }, // Total
     ];
 
-    const currencyFormat = "0.00";
+    // Formatação de Moeda na coluna D (índice 3)
+    // O loop agora percorre até a última linha (incluindo o total)
+    const currencyFormat = '"R$ "#,##0.00';
+    const range = XLSX.utils.decode_range(worksheet["!ref"]);
 
-    for (let R = 1; R < dadosPlano.length + 1; ++R) {
-      const cellE = XLSX.utils.encode_cell({ c: 4, r: R });
-
-      if (worksheet[cellE]) worksheet[cellE].z = currencyFormat;
+    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+      const cellAddress = XLSX.utils.encode_cell({ c: 3, r: R }); // Coluna D (Total)
+      if (
+        worksheet[cellAddress] &&
+        typeof worksheet[cellAddress].v === "number"
+      ) {
+        worksheet[cellAddress].t = "n";
+        worksheet[cellAddress].z = currencyFormat;
+      }
     }
 
     const workbook = XLSX.utils.book_new();
-
     XLSX.utils.book_append_sheet(workbook, worksheet, "Vendas Resumidas");
 
     const excelBuffer = XLSX.write(workbook, {
       bookType: "xlsx",
-
       type: "array",
     });
 
@@ -293,19 +305,24 @@ export default function Tabela() {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
 
-    saveAs(data, `saldo ${dataFormatada}.xlsx`);
+    saveAs(data, `Relatorio_Vendas_${dataFormatada}.xlsx`);
 
     setNotificacao({
-      msg: "Download do Excel (.xlsx) iniciado!",
-
+      msg: "Download do Excel concluído!",
       tipo: "sucesso",
     });
-
     setTimeout(() => setNotificacao(null), 5000);
   };
 
   return (
-    <Flex w="100%" minH="100vh" flexDirection="column" p="1rem">
+    <Flex
+      w="100%"
+      minH="100vh"
+      flexDirection="column"
+      p="1rem"
+      cursor="default"
+      userSelect="none"
+    >
       <Flex w="100%" flexDirection="column" alignItems="center">
         <BackPage rota={"/home"} />
         <ExcelDownload
@@ -326,19 +343,33 @@ export default function Tabela() {
       >
         {/* COMBOBOX DE SERVIÇO */}
         <Combobox.Root
-          collection={listaCollection}
+          collection={listafiltro}
+          value={valorSelecionado}
           onValueChange={selecionarServicoValue}
           inputValue={servicoSelecionado}
           onInputValueChange={(details) =>
             setServicoSelecionado(details.inputValue)
           }
+          focusOnSelect={false}
           w={{ base: "350px", lg: "320px" }}
+          h={{ base: "350px", lg: "100px" }}
         >
-          <Combobox.Label fontWeight="semibold" fontSize="14px">
+          <Combobox.Label
+            h="40px"
+            display="flex"
+            alignItems="center"
+            fontWeight="semibold"
+            fontSize="14px"
+          >
             Selecionar Serviço
           </Combobox.Label>
           <Combobox.Control>
-            <Combobox.Input placeholder="Digite o serviço" p="1rem" />
+            <Combobox.Input
+              placeholder="Digite o serviço"
+              size="md"
+              h="32px" 
+              p=".5rem"
+            />
             <Combobox.IndicatorGroup>
               <Combobox.ClearTrigger
                 onClick={() => setServicoSelecionado("")}
@@ -350,7 +381,7 @@ export default function Tabela() {
             <Combobox.Positioner>
               <Combobox.Content>
                 <Combobox.Empty>item não encontrado</Combobox.Empty>
-                {listaCollection.items.map((item) => (
+                {listafiltro.items.map((item) => (
                   <Combobox.Item item={item} key={item.value}>
                     <Combobox.ItemText>{item.servico}</Combobox.ItemText>
                     <Combobox.ItemIndicator />
@@ -363,7 +394,11 @@ export default function Tabela() {
 
         {/* QUANTIDADE */}
         <Flex direction="column">
-          <Text fontSize="14px" fontWeight="semibold">
+          <Text
+            h="32px"
+            fontSize="14px"
+            fontWeight="semibold"
+          >
             Quantidade
           </Text>
           <Input
@@ -380,7 +415,13 @@ export default function Tabela() {
 
         {/* VALOR EDITÁVEL COM R$ */}
         <Flex direction="column">
-          <Text fontSize="14px" fontWeight="semibold">
+          <Text
+            h="32px"
+            fontSize="14px"
+            fontWeight="semibold"
+            cursor="default"
+            userSelect="none"
+          >
             Valor
           </Text>
           <Input
@@ -406,7 +447,7 @@ export default function Tabela() {
       {/* LISTAS E COMPONENTES INFERIORES */}
       {adicionarLista.length > 0 && (
         <ListaTabelaNova
-        formatarMoedaParaExibicao={formatarMoedaParaExibicao}
+          formatarMoedaParaExibicao={formatarMoedaParaExibicao}
           items={adicionarLista}
           valorTotal={totalGeral}
           onUpdateQuantity={(id, q) => {

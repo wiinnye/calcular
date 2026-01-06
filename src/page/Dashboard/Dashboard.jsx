@@ -29,7 +29,7 @@ export default function Dashboard() {
           cursor='pointer'
           onClick={ () => navigate("/tabelaNova") }
         >
-          <Text fontSize="30px" fontWeight="bold" color="#3B657A">
+          <Text fontSize="30px" fontWeight="bold" color="#3B657A" cursor="default" userSelect="none">
             Nova Tabela
           </Text>
         </Flex>
@@ -47,7 +47,7 @@ export default function Dashboard() {
           cursor='pointer'
           onClick={ () => navigate("/tabelasAntigas") }
         >
-          <Text fontSize="30px" fontWeight="bold" color="#fff">
+          <Text fontSize="30px" fontWeight="bold" color="#fff" userSelect="none">
             Tabelas Antigas
           </Text>
         </Flex>

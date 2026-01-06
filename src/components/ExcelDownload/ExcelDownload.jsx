@@ -7,7 +7,7 @@ export default function ExcelDownload({
   historicoDeVendas,
 }) {
   return (
-      <Flex w="100%" justify="space-around">
+      <Flex w="100%" justify="space-around"  cursor="default" userSelect="none">
         <Flex w="100%" h="100%" p="1rem">
           <Text fontSize="25px" fontWeight="semibold">
             Data: {dataFormatada}

@@ -51,6 +51,7 @@ function App() {
           </>
         ) : (
           <>
+          <Route path="/" element={<Login />} />
           <Route path="/home" element={<Dashboard />} />
           <Route path="/tabelaNova" element={<TabelaNova />} />
           <Route path="/tabelasAntigas" element={<TabelasAntigas />} />
